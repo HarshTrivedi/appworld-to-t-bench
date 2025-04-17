@@ -73,9 +73,11 @@ def generate_setup(task: Task, output_directory: str):
     cli_file_path = "cli"
     cli_content = read_file(cli_file_path)
     cli_content = cli_content.replace('TASK_ID = "{task_id}"', f'TASK_ID = "{task.id}"')
-    output_file_path = os.path.join(output_directory, "cli")
+    output_task_deps_directory = os.path.join(output_directory, "task-deps")
+    os.makedirs(output_task_deps_directory, exist_ok=True)
+    output_file_path = os.path.join(output_task_deps_directory, "cli")
     write_file(cli_content, output_file_path)
-    shutil.copyfile("activate.py", os.path.join(output_directory, "activate.py"))
+    shutil.copyfile("activate.py", os.path.join(output_task_deps_directory, "activate.py"))
 
 
 def generate_solution(task: Task, output_directory: str):
