@@ -1,0 +1,6 @@
+.DS_Store
+.history
+.cache
+.ruff_cache
+tasks
+data

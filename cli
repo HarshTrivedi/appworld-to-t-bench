@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+import json
+from inspect import Parameter, Signature
+from typing import Any, Callable
+
+import requests
+import typer
+from typer import Argument, Option
+
+from appworld.apps import APP_TO_DESCRIPTION
+from appworld.collections.api_docs import ApiDocCollection
+
+
+TASK_ID = "{task_id}"
+BASE_URL = "https://localhost:8000/"
+typer_app = typer.Typer(help="CLI for various app APIs.")
+api_docs = ApiDocCollection.load()
+api_docs.pop("api_docs")
+
+
+def build_command(api_info: dict[str, Any]) -> Callable:
+    params = api_info["parameters"]
+
+    def command_func(**kwargs):
+        app_name = api_info["app_name"]
+        api_name = api_info["api_name"]
+        arguments_str = str(kwargs)
+        url = f"{BASE_URL}/execute"
+        api_code = f"print(apis.{app_name}.{api_name}(**{arguments_str}))"
+        if TASK_ID == "{task_id}":
+            print("Dry calling:")
+            print(api_code)
+        else:
+            output = requests.post(
+                url,
+                data=json.dumps({"task_id": TASK_ID, "code": api_code}),
+                headers={"Content-Type": "application/json"},
+            )
+            print(output)
+
+    parameters = []
+    for param in params:
+        name = param["name"]
+        description = param["description"]
+        param["type"]
+        required = param.get("required", False)
+
+        # TODO: Add constraints, defaults, type hints etc.
+        if required:
+            parameters.append(
+                Parameter(
+                    name=name,
+                    kind=Parameter.POSITIONAL_OR_KEYWORD,
+                    # annotation=param_type,
+                    default=Argument(..., help=description),
+                )
+            )
+        else:
+            parameters.append(
+                Parameter(
+                    name=name,
+                    kind=Parameter.KEYWORD_ONLY,
+                    # annotation=param_type,
+                    default=Option(None, help=description),
+                )
+            )
+
+    command_func.__signature__ = Signature(parameters)
+    command_func.__doc__ = api_info["description"]
+    return command_func
+
+
+for app_name, apis in api_docs.items():
+    app_sub = typer.Typer(help=APP_TO_DESCRIPTION[app_name])
+    for api_name, api_info in apis.items():
+        api_func = build_command(api_info)
+        app_sub.command(name=api_name)(api_func)
+    typer_app.add_typer(app_sub, name=app_name)
+
+
+if __name__ == "__main__":
+    typer_app()
