@@ -9,7 +9,7 @@ from appworld.common.utils import read_file, write_file
 from appworld.task import Task
 
 
-TEMPLATE_DIRECTORY = "template"
+TEMPLATE_DIRECTORY = "template2"
 
 
 def parse_api_call(
@@ -50,8 +50,13 @@ def parse_api_call(
     return None
 
 
-def generate_instruction(task: Task, output_directory: str):
-    tasks_yaml_file_path = os.path.join(TEMPLATE_DIRECTORY, "task.yaml")
+def _generate_task(task: Task, output_directory: str):
+    # Copy template directory
+    shutil.rmtree(output_directory, ignore_errors=True)
+    os.makedirs(output_directory, exist_ok=True)
+    shutil.copytree(TEMPLATE_DIRECTORY, output_directory)
+    # Update task.yaml
+    tasks_yaml_file_path = os.path.join(output_directory, "task.yaml")
     tasks_yaml = read_file(tasks_yaml_file_path)
     tasks_yaml = tasks_yaml.replace("{instruction}", task.instruction)
     tasks_yaml = tasks_yaml.replace(
@@ -67,28 +72,17 @@ def generate_instruction(task: Task, output_directory: str):
     tasks_yaml = tasks_yaml.replace("{difficulty}", difficulty)
     output_file_path = os.path.join(output_directory, "task.yaml")
     write_file(tasks_yaml, output_file_path)
-
-
-def generate_setup(task: Task, output_directory: str):
-    docker_file_path = os.path.join(TEMPLATE_DIRECTORY, "Dockerfile")
+    # Update client/Dockerfile
+    docker_file_path = os.path.join(output_directory, "client", "Dockerfile")
     docker_content = read_file(docker_file_path)
     docker_content = docker_content.replace("{task_id}", task.id)
-    output_file_path = os.path.join(output_directory, "Dockerfile")
-    write_file(docker_content, output_file_path)
-    cli_file_path = "cli"
+    write_file(docker_content, docker_file_path)
+    # Update client/cli
+    cli_file_path = os.path.join(output_directory, "client", "cli")
     cli_content = read_file(cli_file_path)
     cli_content = cli_content.replace('TASK_ID = "{task_id}"', f'TASK_ID = "{task.id}"')
-    output_task_deps_directory = os.path.join(output_directory, "task-deps")
-    os.makedirs(output_task_deps_directory, exist_ok=True)
-    output_file_path = os.path.join(output_task_deps_directory, "cli")
-    write_file(cli_content, output_file_path)
-    shutil.copyfile(
-        "activate.py", os.path.join(output_task_deps_directory, "activate.py")
-    )
-
-
-def generate_solution(task: Task, output_directory: str):
-    solution_file_path = os.path.join(TEMPLATE_DIRECTORY, "solution.sh")
+    # Update solution.sh
+    solution_file_path = os.path.join(output_directory, "solution.sh")
     solution_content = read_file(solution_file_path)
     solution_code = ""
     for api_call in task.ground_truth.api_calls:
@@ -127,29 +121,14 @@ def generate_solution(task: Task, output_directory: str):
     solution_content = solution_content.replace("{solution}", solution_code)
     output_file_path = os.path.join(output_directory, "solution.sh")
     write_file(solution_content, output_file_path)
-
-
-def generate_evaluation(task: Task, output_directory: str):
-    shutil.copyfile(
-        os.path.join(TEMPLATE_DIRECTORY, "run-tests.sh"),
-        os.path.join(output_directory, "run-tests.sh"),
-    )
+    # Update tests/test_outputs.py
     template_tests_directory = os.path.join(TEMPLATE_DIRECTORY, "tests")
     tests_file_path = os.path.join(template_tests_directory, "test_outputs.py")
     test_content = read_file(tests_file_path)
     test_content = test_content.replace("{task_id}", task.id)
     output_tests_directory = os.path.join(output_directory, "tests")
-    os.makedirs(output_tests_directory, exist_ok=True)
     output_file_path = os.path.join(output_tests_directory, "test_outputs.py")
     write_file(test_content, output_file_path)
-
-
-def _generate_task(task: Task, output_directory: str):
-    generate_instruction(task, output_directory)
-    # generate_setup(task, output_directory)
-    generate_solution(task, output_directory)
-    generate_evaluation(task, output_directory)
-    print(f"Generated task in {output_directory}")
 
 
 def generate_task(appworld_task_id: str, t_bench_task_id: str, t_bench_directory: str):
