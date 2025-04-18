@@ -1,4 +1,5 @@
 import argparse
+import json
 import shutil
 from typing import Any
 import os
@@ -21,8 +22,8 @@ def parse_api_call(
     app_name = url.lstrip("/").split("/", 1)[0]
 
     def _match_url(pattern: str, url: str) -> dict | None:
-        regex_pattern = re.sub(r'{(\w+)}', r'(?P<\1>[^/]+)', pattern)
-        regex_pattern = f'^{regex_pattern}$'
+        regex_pattern = re.sub(r"{(\w+)}", r"(?P<\1>[^/]+)", pattern)
+        regex_pattern = f"^{regex_pattern}$"
         match = re.match(regex_pattern, url)
         if match:
             return match.groupdict()
@@ -38,7 +39,7 @@ def parse_api_call(
         if specs["method"].lower().strip() != method.lower().strip():
             continue
         parameter_names = {e["name"] for e in specs["parameters"]}
-        if not all(key in parameter_names  for key in data.keys()):
+        if not all(key in parameter_names for key in data.keys()):
             continue
         if "{" not in specs["path"] and specs["path"] == url:
             output["arguments"] = data
@@ -53,12 +54,16 @@ def generate_instruction(task: Task, output_directory: str):
     tasks_yaml_file_path = os.path.join(TEMPLATE_DIRECTORY, "task.yaml")
     tasks_yaml = read_file(tasks_yaml_file_path)
     tasks_yaml = tasks_yaml.replace("{instruction}", task.instruction)
-    tasks_yaml = tasks_yaml.replace("{supervisor.name}", f"{task.supervisor.first_name} {task.supervisor.last_name}" )
+    tasks_yaml = tasks_yaml.replace(
+        "{supervisor.name}", f"{task.supervisor.first_name} {task.supervisor.last_name}"
+    )
     tasks_yaml = tasks_yaml.replace("{supervisor.email}", task.supervisor.email)
     tasks_yaml = tasks_yaml.replace(
         "{supervisor.phone_number}", task.supervisor.phone_number
     )
-    difficulty = {1: "easy", 2: "medium", 3: "hard"}[task.ground_truth.metadata["difficulty"]]
+    difficulty = {1: "easy", 2: "medium", 3: "hard"}[
+        task.ground_truth.metadata["difficulty"]
+    ]
     tasks_yaml = tasks_yaml.replace("{difficulty}", difficulty)
     output_file_path = os.path.join(output_directory, "task.yaml")
     write_file(tasks_yaml, output_file_path)
@@ -77,7 +82,9 @@ def generate_setup(task: Task, output_directory: str):
     os.makedirs(output_task_deps_directory, exist_ok=True)
     output_file_path = os.path.join(output_task_deps_directory, "cli")
     write_file(cli_content, output_file_path)
-    shutil.copyfile("activate.py", os.path.join(output_task_deps_directory, "activate.py"))
+    shutil.copyfile(
+        "activate.py", os.path.join(output_task_deps_directory, "activate.py")
+    )
 
 
 def generate_solution(task: Task, output_directory: str):
@@ -99,13 +106,11 @@ def generate_solution(task: Task, output_directory: str):
             else:
                 optional_arguments.add(parameter["name"])
         api_code = f"cli {app_name} {api_name} "
-        api_code += " ".join(
-            f"--{arg} {value}" for arg, value in arguments.items()
-            if arg in required_arguments  # TODO: Check if -- this syntax is valid for required arguments
+        api_code += (
+            " ".join([json.dumps(arguments[arg]) for arg in required_arguments]) + " "
         )
         api_code += " ".join(
-            f"--{arg} {value}" for arg, value in arguments.items()
-            if arg in optional_arguments
+            [f"--{arg} {json.dumps(arguments[arg])}" for arg in optional_arguments]
         )
         solution_code += api_code.strip() + "\n"
     solution_content = solution_content.replace("{solution}", solution_code)
