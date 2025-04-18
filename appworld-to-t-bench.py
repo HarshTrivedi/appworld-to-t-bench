@@ -9,7 +9,7 @@ from appworld.common.utils import read_file, write_file
 from appworld.task import Task
 
 
-TEMPLATE_DIRECTORY = "template2"
+TEMPLATE_DIRECTORY = "template"
 
 
 def parse_api_call(
