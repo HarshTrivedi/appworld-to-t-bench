@@ -118,7 +118,7 @@ def generate_solution(task: Task, output_directory: str):
         )
         api_code += " ".join(
             [
-                f"--{arg} {json.dumps(arguments[arg])}"
+                f"--{arg.replace('_', '-')} {json.dumps(arguments[arg])}"
                 for arg in optional_arguments
                 if arg in arguments
             ]
