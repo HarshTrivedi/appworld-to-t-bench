@@ -53,7 +53,6 @@ def parse_api_call(
 def _generate_task(task: Task, output_directory: str):
     # Copy template directory
     shutil.rmtree(output_directory, ignore_errors=True)
-    os.makedirs(output_directory, exist_ok=True)
     shutil.copytree(TEMPLATE_DIRECTORY, output_directory)
     # Update task.yaml
     tasks_yaml_file_path = os.path.join(output_directory, "task.yaml")
@@ -81,6 +80,7 @@ def _generate_task(task: Task, output_directory: str):
     cli_file_path = os.path.join(output_directory, "client", "cli")
     cli_content = read_file(cli_file_path)
     cli_content = cli_content.replace('TASK_ID = "{task_id}"', f'TASK_ID = "{task.id}"')
+    write_file(cli_content, cli_file_path)
     # Update solution.sh
     solution_file_path = os.path.join(output_directory, "solution.sh")
     solution_content = read_file(solution_file_path)
