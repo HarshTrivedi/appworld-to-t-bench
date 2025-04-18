@@ -119,6 +119,10 @@ def generate_solution(task: Task, output_directory: str):
 
 
 def generate_evaluation(task: Task, output_directory: str):
+    shutil.copyfile(
+        os.path.join(TEMPLATE_DIRECTORY, "run-tests.sh"),
+        os.path.join(output_directory, "run-tests.sh"),
+    )
     template_tests_directory = os.path.join(TEMPLATE_DIRECTORY, "tests")
     tests_file_path = os.path.join(template_tests_directory, "test_outputs.py")
     test_content = read_file(tests_file_path)
