@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://server:8000"
 TASK_ID = "{task_id}"
 
 def test_success():
