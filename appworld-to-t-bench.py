@@ -107,10 +107,21 @@ def generate_solution(task: Task, output_directory: str):
                 optional_arguments.add(parameter["name"])
         api_code = f"cli {app_name} {api_name} "
         api_code += (
-            " ".join([json.dumps(arguments[arg]) for arg in required_arguments]) + " "
+            " ".join(
+                [
+                    json.dumps(arguments[arg])
+                    for arg in required_arguments
+                    if arg in arguments
+                ]
+            )
+            + " "
         )
         api_code += " ".join(
-            [f"--{arg} {json.dumps(arguments[arg])}" for arg in optional_arguments]
+            [
+                f"--{arg} {json.dumps(arguments[arg])}"
+                for arg in optional_arguments
+                if arg in arguments
+            ]
         )
         solution_code += api_code.strip() + "\n"
     solution_content = solution_content.replace("{solution}", solution_code)
@@ -135,7 +146,7 @@ def generate_evaluation(task: Task, output_directory: str):
 
 def _generate_task(task: Task, output_directory: str):
     generate_instruction(task, output_directory)
-    generate_setup(task, output_directory)
+    # generate_setup(task, output_directory)
     generate_solution(task, output_directory)
     generate_evaluation(task, output_directory)
     print(f"Generated task in {output_directory}")
