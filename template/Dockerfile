@@ -11,8 +11,8 @@ RUN apt-get update && \
 
 # Add files needed for the task
 COPY task-deps/activate.py ./
-COPY task-deps/cli ./cli
-RUN chmod +x ./cli
+COPY task-deps/cli /bin/cli
+RUN chmod +x /bin/cli
 
 # Activate given task (TODO: This needs to run after the server starts!)
 RUN /opt/venv/bin/python activate.py {TASK_ID}
