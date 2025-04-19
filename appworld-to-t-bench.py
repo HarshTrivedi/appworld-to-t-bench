@@ -146,6 +146,7 @@ def generate_task(appworld_task_id: str, t_bench_task_id: str, t_bench_directory
     output_directory = os.path.join(t_bench_directory, "tasks", t_bench_task_id)
     os.makedirs(output_directory, exist_ok=True)
     _generate_task(task, output_directory)
+    print(f"Task {appworld_task_id} reformatted in {output_directory}")
 
 
 def main():
