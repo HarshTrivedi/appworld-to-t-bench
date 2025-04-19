@@ -10,7 +10,17 @@ from typer import Argument, Option
 
 TASK_ID = "{task_id}"
 BASE_URL = "http://server:8000"
-CACHE_PATH = "/prohibited"
+CACHE_PATH = os.path.expanduser("~/.cache/appworld")
+TYPE_MAPPING = {
+    "boolean": bool,
+    "integer": int,
+    "number": float,
+    "string": str,
+    "list[number]": list[float],
+    "list[string]": list[str],
+    # Typer doesn't support unions: https://github.com/fastapi/typer/pull/1148
+    "number | integer | string": str,
+}
 typer_app = typer.Typer(help="CLI for various app APIs.", add_completion=False)
 
 
@@ -28,25 +38,30 @@ def to_dict(obj: Any) -> Any:
 
 
 def load_api_docs_and_app_descriptions() -> tuple[dict, dict]:
-    loaded = os.path.join(CACHE_PATH, "api_docs.json")
+    data_directory_path = os.path.join(CACHE_PATH, "data")
     api_docs_file_path = os.path.join(CACHE_PATH, "api_docs.json")
-    app_to_description_file_path = os.path.join(
-        CACHE_PATH, "app_to_description.json"
-    )
-    if not loaded:
+    app_to_description_file_path = os.path.join(CACHE_PATH, "app_to_description.json")
+    data_loaded = os.path.exists(data_directory_path)
+    api_docs_loaded = os.path.exists(api_docs_file_path)
+    app_to_description_loaded = os.path.exists(app_to_description_file_path)
+    os.makedirs(CACHE_PATH, exist_ok=True)
+    if not data_loaded or not api_docs_loaded or not app_to_description_loaded:
         from appworld import update_root
-        from appworld.apps import APP_TO_DESCRIPTION
-        from appworld.collections.api_docs import ApiDocCollection
         from appworld.common.utils import write_json
+        from appworld.collections.api_docs import ApiDocCollection
+        from appworld.download import download_data
+        from appworld.apps import APP_TO_DESCRIPTION
 
         update_root(CACHE_PATH)
+    if not data_loaded:
+        download_data()
+    if not api_docs_loaded:
         api_docs: dict = ApiDocCollection.load()
         api_docs = to_dict(api_docs)
-        os.makedirs(CACHE_PATH, exist_ok=True)
+        api_docs.pop("api_docs")
         write_json(api_docs, api_docs_file_path, silent=True)
-        write_json(
-            APP_TO_DESCRIPTION, app_to_description_file_path, silent=True
-        )
+    if not app_to_description_loaded:
+        write_json(APP_TO_DESCRIPTION, app_to_description_file_path, silent=True)
     with open(api_docs_file_path, "r") as file:
         api_docs = json.load(file)
     with open(app_to_description_file_path, "r") as file:
@@ -84,16 +99,15 @@ def build_command(api_info: dict[str, Any]) -> Callable:
     for param in params:
         name = param["name"]
         description = param["description"]
-        # param_type = param["type"]
+        param_type = param["type"]
         required = param.get("required", False)
-
-        # TODO: Add constraints, type hints etc.
+        type_hint = TYPE_MAPPING[param_type]
         if required:
             parameters.append(
                 Parameter(
                     name=name,
                     kind=Parameter.POSITIONAL_OR_KEYWORD,
-                    # annotation=param_type,
+                    annotation=type_hint,
                     default=Argument(..., help=description),
                 )
             )
@@ -103,7 +117,7 @@ def build_command(api_info: dict[str, Any]) -> Callable:
                 Parameter(
                     name=name,
                     kind=Parameter.KEYWORD_ONLY,
-                    # annotation=param_type,
+                    annotation=type_hint,
                     default=Option(default_value, help=description),
                 )
             )
