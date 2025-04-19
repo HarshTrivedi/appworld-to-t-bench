@@ -85,6 +85,8 @@ def _generate_task(task: Task, output_directory: str):
     docker_file_path = os.path.join(output_directory, "client", "Dockerfile")
     docker_content = read_file(docker_file_path)
     docker_content = guaranteed_replace(docker_content, "{task_id}", task.id)
+    date_time_string = task.datetime.strftime('%Y-%m-%d %H:%M:%S')
+    docker_content = guaranteed_replace(docker_content, "{date_time}", date_time_string)
     write_file(docker_content, docker_file_path)
     # Update client/cli
     cli_file_path = os.path.join(output_directory, "client", "cli")
