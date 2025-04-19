@@ -10,7 +10,8 @@ from typer import Argument, Option
 
 TASK_ID = "{task_id}"
 BASE_URL = "http://server:8000"
-typer_app = typer.Typer(help="CLI for various app APIs.")
+CACHE_PATH = "/prohibited"
+typer_app = typer.Typer(help="CLI for various app APIs.", add_completion=False)
 
 
 def to_dict(obj: Any) -> Any:
@@ -27,26 +28,28 @@ def to_dict(obj: Any) -> Any:
 
 
 def load_api_docs_and_app_descriptions() -> tuple[dict, dict]:
-    loaded = os.path.exists("/prohibited/api_docs.json")
-
+    loaded = os.path.join(CACHE_PATH, "api_docs.json")
+    api_docs_file_path = os.path.join(CACHE_PATH, "api_docs.json")
+    app_to_description_file_path = os.path.join(
+        CACHE_PATH, "app_to_description.json"
+    )
     if not loaded:
         from appworld import update_root
         from appworld.apps import APP_TO_DESCRIPTION
         from appworld.collections.api_docs import ApiDocCollection
         from appworld.common.utils import write_json
 
-        update_root("/prohibited")
+        update_root(CACHE_PATH)
         api_docs: dict = ApiDocCollection.load()
         api_docs = to_dict(api_docs)
-        os.makedirs("/prohibited", exist_ok=True)
-        write_json(api_docs, "/prohibited/api_docs.json", silent=True)
+        os.makedirs(CACHE_PATH, exist_ok=True)
+        write_json(api_docs, api_docs_file_path, silent=True)
         write_json(
-            APP_TO_DESCRIPTION, "/prohibited/app_to_description.json", silent=True
+            APP_TO_DESCRIPTION, app_to_description_file_path, silent=True
         )
-    with open("/prohibited/api_docs.json", "r") as file:
+    with open(api_docs_file_path, "r") as file:
         api_docs = json.load(file)
-
-    with open("/prohibited/app_to_description.json", "r") as file:
+    with open(app_to_description_file_path, "r") as file:
         app_to_description = json.load(file)
     return api_docs, app_to_description
 
