@@ -11,7 +11,7 @@ from typer import Argument, Option
 
 TASK_ID = "{task_id}"
 BASE_URL = "http://server:8000"
-CACHE_PATH = os.path.expanduser("~/.cache/appworld")
+CACHE_PATH = os.path.expanduser("/prohibited")
 ENUM_CACHE = {}
 TYPE_MAPPING = {
     "boolean": bool,
