@@ -23,7 +23,7 @@ descriptions:
       {instruction}
 
 author_email: harshjtrivedi94@gmail.com
-difficulty: easy
+difficulty: {difficulty}
 category: digital-automation
 tags:
   - digital-automation

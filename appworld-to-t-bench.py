@@ -12,6 +12,16 @@ from appworld.task import Task
 TEMPLATE_DIRECTORY = "template"
 
 
+def guaranteed_replace(
+    content: str,
+    from_str: str,
+    to_str: str,
+) -> str:
+    if from_str not in content:
+        raise ValueError(f"String '{from_str}' not found in content.")
+    return content.replace(from_str, to_str)
+
+
 def parse_api_call(
     api_call: dict[str, Any],
     api_docs: dict[str, dict[str, dict[str, str]]],
