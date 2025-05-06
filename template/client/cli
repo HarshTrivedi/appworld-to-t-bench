@@ -1,6 +1,7 @@
 #!/opt/venv/bin/python
 import json
 import os
+import re
 from inspect import Parameter, Signature
 from typing import Any, Callable
 from enum import Enum
@@ -114,10 +115,9 @@ def extract_email_constraints(constraints: list[str]):
         if "email address" in rule:
 
             def email_callback(value: str) -> str:
-                raise typer.BadParameter("Invalid email address.")
-                # if not re.match(r"[^@]+@[^@]+\.[^@]+", value):
-                #     raise typer.BadParameter("Invalid email address.")
-                # return value
+                if not re.match(r"[^@]+@[^@]+\.[^@]+", value):
+                    raise typer.BadParameter("Invalid email address.")
+                return value
 
             return email_callback
     return None
@@ -145,6 +145,11 @@ def build_command(api_info: dict[str, Any]) -> Callable:
     def command_func(**kwargs):
         app_name = api_info["app_name"]
         api_name = api_info["api_name"]
+        kwargs = {  # TODO: This is a temporary fix.
+            key: value
+            for key, value in kwargs.items()
+            if value is not None
+        }
         arguments_str = str(kwargs)
         url = f"{BASE_URL}/execute"
         api_code = f"print(apis.{app_name}.{api_name}(**{arguments_str}))"

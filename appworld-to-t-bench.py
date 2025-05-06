@@ -55,6 +55,10 @@ def parse_api_call(
             output["arguments"] = data
             return output
         if "{" in specs["path"] and (matched := _match_url(specs["path"], url)):
+            matched = {
+                key: int(value) if value.isnumeric() else value
+                for key, value in matched.items()
+            }
             output["arguments"] = data | matched
             return output
     return None
@@ -104,13 +108,13 @@ def _generate_task(task: Task, output_directory: str):
         api_name = parsed_api_call["api_name"]
         arguments = parsed_api_call["arguments"]
         specs = parsed_api_call["specs"]
-        required_arguments: set[str] = set()
-        optional_arguments: set[str] = set()
+        required_arguments: list[str] = []
+        optional_arguments: list[str] = []
         for parameter in specs["parameters"]:
             if parameter["required"]:
-                required_arguments.add(parameter["name"])
+                required_arguments.append(parameter["name"])
             else:
-                optional_arguments.add(parameter["name"])
+                optional_arguments.append(parameter["name"])
         api_code = f"cli {app_name} {api_name} "
         api_code += (
             " ".join(
@@ -122,9 +126,19 @@ def _generate_task(task: Task, output_directory: str):
             )
             + " "
         )
+        def arg_value_to_str(arg: str, value: Any) -> str:
+            if isinstance(value, bool):
+                return f"--{arg.replace('_', '-')}" if value else f"--no-{arg.replace('_', '-')}"
+            elif isinstance(value, str):
+                return f"--{arg.replace('_', '-')} {json.dumps(value) if ' ' in value else value}"
+            elif isinstance(value, (int, float)):
+                return f"--{arg.replace('_', '-')} {value}"
+            else:
+                return f"--{arg.replace('_', '-')} {json.dumps(value)}"
+
         api_code += " ".join(
             [
-                f"--{arg.replace('_', '-')} {json.dumps(arguments[arg])}"
+                arg_value_to_str(arg, arguments[arg])
                 for arg in optional_arguments
                 if arg in arguments
             ]
